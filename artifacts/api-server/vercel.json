@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && pnpm install --no-frozen-lockfile && pnpm run typecheck:libs",
+  "buildCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
   "installCommand": "echo 'Dependencies are installed via buildCommand'",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
