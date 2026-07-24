@@ -23,7 +23,7 @@ async function requestCourier(
   token: string,
   order: CourierOrder,
 ): Promise<CourierResult> {
-  const response = await fetch(url, {
+  const response = (await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({
@@ -34,10 +34,11 @@ async function requestCourier(
       amount: Number(order.totalAmount),
       items: order.items,
     }),
-  });
+  })) as unknown as { ok: boolean; status: number; json(): Promise<unknown> };
   if (!response.ok) throw new Error(`${provider} booking failed with ${response.status}`);
-  const data = await response.json() as Record<string, any>;
-  const trackingCode = data.trackingCode ?? data.tracking_code ?? data.consignment_id ?? data.data?.tracking_code;
+  const data = (await response.json()) as Record<string, unknown>;
+  const nested = (data.data ?? {}) as Record<string, unknown>;
+  const trackingCode = data.trackingCode ?? data.tracking_code ?? data.consignment_id ?? nested.tracking_code;
   if (!trackingCode) throw new Error(`${provider} returned no tracking code`);
   return { provider, trackingCode: String(trackingCode), isStub: false };
 }
