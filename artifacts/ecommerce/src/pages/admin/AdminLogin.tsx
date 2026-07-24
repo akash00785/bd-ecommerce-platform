@@ -3,6 +3,15 @@ import { useLocation } from 'wouter';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/firebase';
 
+// Admin emails are controlled via VITE_ADMIN_EMAILS env var (comma-separated).
+// e.g. VITE_ADMIN_EMAILS=admin@example.com,owner@example.com
+// If the env var is not set, falls back to checking the backend API (when available).
+function getAdminEmails(): string[] {
+  const raw = import.meta.env.VITE_ADMIN_EMAILS as string | undefined;
+  if (!raw) return [];
+  return raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
@@ -16,26 +25,61 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth!, email, password);
 
-      // Verify that this Firebase account has admin privileges by calling a
-      // protected admin endpoint. If the server returns 401/403 it is not an admin.
+      const adminEmails = getAdminEmails();
+
+      if (adminEmails.length > 0) {
+        // ✅ Frontend-only check: is this email in the allowed admin list?
+        const userEmail = result.user.email?.toLowerCase() ?? '';
+        if (!adminEmails.includes(userEmail)) {
+          await auth!.signOut();
+          setError('এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।');
+          setLoading(false);
+          return;
+        }
+        // Email is in the whitelist — allow access
+        setLocation('/admin');
+        return;
+      }
+
+      // Fallback: verify via backend API (when VITE_ADMIN_EMAILS is not set
+      // and a backend is deployed).
       const token = await result.user.getIdToken();
-      const check = await fetch(`${import.meta.env.BASE_URL}api/dashboard/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+      const checkUrl = apiBase
+        ? `${apiBase}/api/dashboard/stats`
+        : `${import.meta.env.BASE_URL}api/dashboard/stats`;
 
-      if (!check.ok) {
-        await auth.signOut();
-        setError('এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।');
+      try {
+        const check = await fetch(checkUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Reject if the server responded with HTML (SPA catch-all, no backend).
+        const contentType = check.headers.get('content-type') ?? '';
+        const isHtml = contentType.includes('text/html');
+
+        if (!check.ok || isHtml) {
+          await auth!.signOut();
+          setError(
+            isHtml
+              ? 'Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন অথবা Backend deploy করুন।'
+              : 'এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।',
+          );
+          setLoading(false);
+          return;
+        }
+      } catch {
+        await auth!.signOut();
+        setError('Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন।');
         setLoading(false);
         return;
       }
 
-      // Admin verified — navigate to admin panel
       setLocation('/admin');
-    } catch (err: any) {
-      const code = err?.code ?? '';
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code ?? '';
       const messages: Record<string, string> = {
         'auth/invalid-credential': 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।',
         'auth/user-not-found': 'এই ইমেইলে কোনো অ্যাকাউন্ট নেই।',
@@ -100,7 +144,7 @@ export default function AdminLogin() {
 
         <div className="mt-6 p-3 bg-gray-50 rounded-lg">
           <p className="text-center text-xs text-gray-500">
-            অ্যাডমিন অ্যাক্সেসের জন্য Firebase-এ <code className="bg-gray-200 px-1 rounded">ADMIN_UIDS</code> সেট করুন অথবা কাস্টম ক্লেইম যোগ করুন
+            Vercel-এ <code className="bg-gray-200 px-1 rounded">VITE_ADMIN_EMAILS</code> সেট করুন
           </p>
         </div>
       </div>
