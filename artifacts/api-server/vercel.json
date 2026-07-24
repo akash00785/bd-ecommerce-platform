@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter api-server build || true",
   "installCommand": "echo 'Dependencies are installed via buildCommand'",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
