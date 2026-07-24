@@ -8,6 +8,7 @@
 
 export type ListOrdersParams = {
 status?: string;
+customerEmail?: string;
 limit?: number;
 offset?: number;
 };

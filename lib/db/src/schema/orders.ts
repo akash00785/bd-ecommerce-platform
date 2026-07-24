@@ -7,6 +7,7 @@ export const ordersTable = pgTable("orders", {
   orderNumber: text("order_number").notNull().unique(),
   customerName: text("customer_name"),
   customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
   shippingFee: numeric("shipping_fee", { precision: 12, scale: 2 }).notNull().default("0"),
   discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),

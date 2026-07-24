@@ -406,6 +406,7 @@ export const CreateBrandResponse = zod.object({
  */
 export const ListOrdersQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
+  "customerEmail": zod.coerce.string().optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
 })

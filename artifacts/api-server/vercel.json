@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter api-server build || true",
+  "buildCommand": "cd ../.. && npx tsc --build && cd artifacts/api-server && node ./build.mjs",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ],
