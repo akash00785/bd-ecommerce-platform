@@ -83,7 +83,7 @@ export default function Home() {
                   <div className="w-20 h-4 bg-muted rounded"></div>
                 </div>
               ))
-            ) : categories?.slice(0, 6).map((cat, i) => (
+            ) : Array.isArray(categories) && categories.slice(0, 6).map((cat, i) => (
               <motion.div
                 key={cat.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -104,7 +104,7 @@ export default function Home() {
       </section>
 
       {/* Flash Sale */}
-      {flashSaleProducts && flashSaleProducts.length > 0 && (
+      {Array.isArray(flashSaleProducts) && flashSaleProducts.length > 0 && (
         <section className="py-16 bg-destructive/5 border-y border-destructive/10">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -153,7 +153,7 @@ export default function Home() {
                   <div className="w-1/4 h-4 bg-muted rounded"></div>
                 </div>
               ))
-            ) : featuredProducts?.slice(0, 8).map((product, i) => (
+            ) : Array.isArray(featuredProducts) && featuredProducts.slice(0, 8).map((product, i) => (
               <ProductCard key={product.id} product={product} index={i} />
             ))}
           </div>

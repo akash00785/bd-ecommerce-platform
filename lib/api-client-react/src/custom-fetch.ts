@@ -302,6 +302,24 @@ async function parseSuccessBody(
   const effectiveType =
     responseType === "auto" ? inferResponseType(response) : responseType;
 
+  // Guard: if the server returned text/html but we expected JSON/text data,
+  // it almost certainly means the request was caught by an SPA catch-all
+  // rewrite (e.g. Vercel rewrites every path to index.html).
+  // Returning the HTML string as data causes downstream ".map is not a
+  // function" crashes, so we throw an ApiError-like error instead so that
+  // React Query records it as an error state and leaves `data` as undefined.
+  if (effectiveType !== "blob" && responseType === "auto") {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.startsWith("text/html")) {
+      throw new TypeError(
+        `API endpoint returned text/html instead of JSON — ` +
+        `the request was probably intercepted by an SPA rewrite rule. ` +
+        `Set VITE_API_URL to your deployed API server. ` +
+        `(${requestInfo.method} ${requestInfo.url})`,
+      );
+    }
+  }
+
   switch (effectiveType) {
     case "json":
       return parseJsonBody(response, requestInfo);
