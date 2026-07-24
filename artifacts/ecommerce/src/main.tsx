@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { setBaseUrl } from '@workspace/api-client-react';
 
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 // VITE_API_URL → set this to your deployed API server URL on Vercel/Railway/Render
@@ -12,4 +13,8 @@ if (apiUrl) {
   setBaseUrl(apiUrl);
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
