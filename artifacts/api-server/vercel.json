@@ -6,7 +6,7 @@
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30,
       "memory": 512
     }
