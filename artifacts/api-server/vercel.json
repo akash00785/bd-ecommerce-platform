@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && pnpm --filter api-server build || true",
-  "installCommand": "echo 'Dependencies are installed via buildCommand'",
+  "installCommand": "pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter api-server build",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ],
