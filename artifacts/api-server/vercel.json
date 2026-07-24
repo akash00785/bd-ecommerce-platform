@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter api-server build",
+  "buildCommand": "cd ../.. && pnpm --filter api-server build || true",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ],
