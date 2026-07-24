@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "cd ../.. && pnpm install --no-frozen-lockfile && pnpm run typecheck:libs",
+  "installCommand": "echo 'Dependencies are installed via buildCommand'",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  }
+}
