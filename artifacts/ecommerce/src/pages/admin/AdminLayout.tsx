@@ -43,7 +43,14 @@ async function checkIsAdmin(): Promise<boolean> {
       .split(',')
       .map((s: string) => s.trim())
       .filter(Boolean);
-    if (allowedUids.includes(user.uid)) return true;
+    if (allowedUids.length > 0 && allowedUids.includes(user.uid)) return true;
+
+    // Fallback: Email allowlist from env — same list used by AdminLogin
+    const allowedEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((s: string) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (allowedEmails.length > 0 && allowedEmails.includes((user.email ?? '').toLowerCase())) return true;
   } catch {
     // Token verification failed — treat as non-admin
   }
