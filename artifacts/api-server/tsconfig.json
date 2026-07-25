@@ -8,7 +8,7 @@
     "types": ["node"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "noEmitOnError": false,
+    "noEmit": true,
     "skipLibCheck": true
   },
   "include": ["src", "api"],
