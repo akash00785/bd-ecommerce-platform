@@ -10,6 +10,13 @@ import { logger } from "./lib/logger.js";
 const app: Express = express();
 
 // -----------------------------------------------------------------------
+// Trust Vercel's reverse proxy so express-rate-limit can read the real
+// client IP from X-Forwarded-For instead of throwing ERR_ERL_FORWARDED_HEADER.
+// '1' means trust the first hop (Vercel edge → our function).
+// -----------------------------------------------------------------------
+app.set("trust proxy", 1);
+
+// -----------------------------------------------------------------------
 // HTTP Security Headers (Helmet)
 // Sets X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy,
 // X-Permitted-Cross-Domain-Policies, and more.
