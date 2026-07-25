@@ -19,10 +19,13 @@ const navItems = [
 /**
  * Checks whether the currently signed-in Firebase user holds the admin role.
  *
- * Admin status is determined by either:
- *   1. A custom Firebase claim `{ admin: true }` set via the Admin SDK, OR
- *   2. The user's UID being present in the VITE_ADMIN_UIDS env var
- *      (comma-separated, useful for local dev before custom claims are configured).
+ * Admin status is determined ONLY by a Firebase custom claim { admin: true }
+ * set server-side via the Firebase Admin SDK.
+ *
+ * SECURITY: VITE_ADMIN_UIDS and VITE_ADMIN_EMAILS env vars are intentionally
+ * NOT used here. VITE_* variables are compiled into the JS bundle and visible
+ * to anyone who opens DevTools — using them as an access gate is insecure.
+ * All admin verification must go through server-side Firebase custom claims.
  *
  * The token is force-refreshed so that newly granted claims take effect
  * without requiring a full logout/login cycle.
@@ -35,22 +38,8 @@ async function checkIsAdmin(): Promise<boolean> {
     // Force-refresh to pick up any recently granted custom claims
     const idTokenResult = await user.getIdTokenResult(/* forceRefresh */ true);
 
-    // Custom claim check (set via Firebase Admin SDK)
+    // Only trust server-side custom claim { admin: true }
     if (idTokenResult.claims['admin'] === true) return true;
-
-    // Fallback: UID allowlist from env (for development / initial setup)
-    const allowedUids = (import.meta.env.VITE_ADMIN_UIDS ?? '')
-      .split(',')
-      .map((s: string) => s.trim())
-      .filter(Boolean);
-    if (allowedUids.length > 0 && allowedUids.includes(user.uid)) return true;
-
-    // Fallback: Email allowlist from env — same list used by AdminLogin
-    const allowedEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? '')
-      .split(',')
-      .map((s: string) => s.trim().toLowerCase())
-      .filter(Boolean);
-    if (allowedEmails.length > 0 && allowedEmails.includes((user.email ?? '').toLowerCase())) return true;
   } catch {
     // Token verification failed — treat as non-admin
   }

@@ -139,13 +139,18 @@ router.post("/orders", async (req, res): Promise<void> => {
     const coupon = couponRows[0];
     if (coupon && coupon.active) {
       const expired = coupon.expiryDate && new Date(coupon.expiryDate) < new Date();
-      if (!expired) {
+      // Check usage limit: if usageLimit is set and usedCount has reached it, reject coupon
+      const limitExceeded = coupon.usageLimit != null && (coupon.usedCount ?? 0) >= coupon.usageLimit;
+      if (!expired && !limitExceeded) {
         const discAmt = parseFloat(coupon.discountAmount);
         if (coupon.discountType === "percentage") {
           serverDiscount = Math.round((subtotal * discAmt) / 100 * 100) / 100;
         } else {
           serverDiscount = Math.min(discAmt, subtotal);
         }
+      } else if (limitExceeded) {
+        res.status(400).json({ error: "এই কুপন কোডের ব্যবহার সীমা শেষ হয়ে গেছে।" });
+        return;
       }
     }
   }
@@ -188,6 +193,14 @@ router.post("/orders", async (req, res): Promise<void> => {
         shippingFee: String(serverShipping),
         discountAmount: String(serverDiscount),
       }).returning();
+
+      // Atomically increment coupon usedCount inside the same transaction
+      // so the count stays accurate even under concurrent order creation.
+      if (couponCode) {
+        await tx.update(couponsTable)
+          .set({ usedCount: sql`${couponsTable.usedCount} + 1` })
+          .where(eq(couponsTable.code, couponCode));
+      }
 
       return order;
     });

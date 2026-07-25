@@ -1,5 +1,8 @@
 import { logger } from "../lib/logger.js";
 
+/** Timeout for external SMS API calls in milliseconds */
+const SMS_TIMEOUT_MS = 10_000;
+
 type SmsOrder = {
   orderNumber: string;
   customerPhone?: string | null;
@@ -32,12 +35,22 @@ export async function sendOrderSms(order: SmsOrder, event: "new" | "status") {
     return { sent: false, stub: true };
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ to: order.customerPhone, message: messageFor(order, event) }),
-  });
+  // Use AbortController to enforce a hard timeout on the external SMS API call.
+  // Without this, a slow or unresponsive SMS provider would block the server.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SMS_TIMEOUT_MS);
 
-  if (!response.ok) throw new Error(`SMS provider failed with ${response.status}`);
-  return { sent: true };
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ to: order.customerPhone, message: messageFor(order, event) }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) throw new Error(`SMS provider failed with ${response.status}`);
+    return { sent: true };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

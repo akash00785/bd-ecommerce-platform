@@ -4,15 +4,6 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { getApiBase } from '@/lib/api';
 
-// Admin emails are controlled via VITE_ADMIN_EMAILS env var (comma-separated).
-// e.g. VITE_ADMIN_EMAILS=admin@example.com,owner@example.com
-// If the env var is not set, falls back to checking the backend API (when available).
-function getAdminEmails(): string[] {
-  const raw = import.meta.env.VITE_ADMIN_EMAILS as string | undefined;
-  if (!raw) return [];
-  return raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-}
-
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
@@ -28,24 +19,9 @@ export default function AdminLogin() {
     try {
       const result = await signInWithEmailAndPassword(auth!, email, password);
 
-      const adminEmails = getAdminEmails();
-
-      if (adminEmails.length > 0) {
-        // Frontend check: is this email in the VITE_ADMIN_EMAILS allowlist?
-        const userEmail = result.user.email?.toLowerCase() ?? '';
-        if (!adminEmails.includes(userEmail)) {
-          await auth!.signOut();
-          setError('এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।');
-          setLoading(false);
-          return;
-        }
-        // Email is in the whitelist — allow access
-        setLocation('/admin');
-        return;
-      }
-
-      // Fallback: verify admin role via backend API when VITE_ADMIN_EMAILS is
-      // not set (e.g. using Firebase custom claims + ADMIN_UIDS on the server).
+      // Always verify admin role via backend API using Firebase token.
+      // Frontend-only email/UID allowlists are insecure — anyone can read
+      // VITE_* env vars from the compiled JS bundle.
       const token = await result.user.getIdToken();
       const checkUrl = `${getApiBase()}/api/dashboard/stats`;
 
@@ -62,7 +38,7 @@ export default function AdminLogin() {
           await auth!.signOut();
           setError(
             isHtml
-              ? 'Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন অথবা Backend deploy করুন।'
+              ? 'Backend API পাওয়া যাচ্ছে না। Backend deploy করুন।'
               : 'এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।',
           );
           setLoading(false);
@@ -70,7 +46,7 @@ export default function AdminLogin() {
         }
       } catch {
         await auth!.signOut();
-        setError('Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন।');
+        setError('Backend API পাওয়া যাচ্ছে না।');
         setLoading(false);
         return;
       }

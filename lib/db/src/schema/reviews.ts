@@ -10,7 +10,10 @@ export const reviewsTable = pgTable("reviews", {
   rating: integer("rating").notNull(), // 1-5
   comment: text("comment"),
   isVerified: boolean("is_verified").notNull().default(false),
-  isApproved: boolean("is_approved").notNull().default(true),
+  // SECURITY FIX: default false — new reviews must be explicitly approved
+  // by a moderator before appearing on the storefront. Default true would
+  // auto-publish every review, including spam and malicious content.
+  isApproved: boolean("is_approved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,20 +1,25 @@
-// @ts-nocheck
 /**
  * ONE-TIME DEMO DATA SEEDER
  * ─────────────────────────
- * POST /api/seed?key=<SEED_KEY>
+ * POST /api/seed
+ * Header: x-seed-key: <SEED_KEY>  — or query param ?key=<SEED_KEY>
  *
- * Protected by the SEED_KEY environment variable set in Vercel.
+ * Protected by the SEED_KEY environment variable.
  * Idempotent — skips if products already exist.
  * All inserted data can be edited or deleted from the Admin Panel.
+ *
+ * SECURITY NOTES:
+ * - Uses POST (not GET) to prevent accidental trigger by crawlers/prefetch.
+ * - Uses timing-safe comparison to prevent timing-based key brute-force.
  */
 import { Router } from "express";
+import { timingSafeEqual, createHash } from "crypto";
 import { db, productsTable, categoriesTable, brandsTable, bannersTable, couponsTable } from "@workspace/db";
 
 const router = Router();
 
-router.get("/seed", async (req, res): Promise<void> => {
-  // ── Auth: simple secret key ──────────────────────────────────────────────
+router.post("/seed", async (req, res): Promise<void> => {
+  // ── Auth: timing-safe secret key comparison ──────────────────────────────
   const secret = process.env.SEED_KEY;
   const provided = (req.query.key ?? req.headers["x-seed-key"] ?? "") as string;
 
@@ -22,7 +27,12 @@ router.get("/seed", async (req, res): Promise<void> => {
     res.status(403).json({ error: "SEED_KEY env var is not set on the server." });
     return;
   }
-  if (provided !== secret) {
+
+  // Use timing-safe comparison to prevent timing-based brute-force attacks.
+  // Normal string comparison (===) leaks info about how many characters match.
+  const secretBuf = createHash("sha256").update(secret).digest();
+  const providedBuf = createHash("sha256").update(provided).digest();
+  if (!timingSafeEqual(secretBuf, providedBuf)) {
     res.status(403).json({ error: "Invalid seed key." });
     return;
   }

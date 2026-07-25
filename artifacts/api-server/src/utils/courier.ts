@@ -13,6 +13,9 @@ type CourierResult = {
   isStub: boolean;
 };
 
+/** Timeout for external courier API calls in milliseconds */
+const COURIER_TIMEOUT_MS = 10_000;
+
 function stubTrackingCode(provider: "steadfast" | "pathao", orderNumber: string) {
   return `${provider.toUpperCase()}-${orderNumber.replace(/[^A-Z0-9]/gi, "").slice(-12)}`;
 }
@@ -23,24 +26,36 @@ async function requestCourier(
   token: string,
   order: CourierOrder,
 ): Promise<CourierResult> {
-  const response = (await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      invoice: order.orderNumber,
-      recipient_name: order.customerName,
-      recipient_phone: order.customerPhone,
-      recipient_address: order.shippingAddress,
-      amount: Number(order.totalAmount),
-      items: order.items,
-    }),
-  })) as unknown as { ok: boolean; status: number; json(): Promise<unknown> };
-  if (!response.ok) throw new Error(`${provider} booking failed with ${response.status}`);
-  const data = (await response.json()) as Record<string, unknown>;
-  const nested = (data.data ?? {}) as Record<string, unknown>;
-  const trackingCode = data.trackingCode ?? data.tracking_code ?? data.consignment_id ?? nested.tracking_code;
-  if (!trackingCode) throw new Error(`${provider} returned no tracking code`);
-  return { provider, trackingCode: String(trackingCode), isStub: false };
+  // Use AbortController to enforce a hard timeout on the external API call.
+  // Without this, a slow or unresponsive courier API would cause the order
+  // creation request to hang indefinitely, blocking the user's checkout.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), COURIER_TIMEOUT_MS);
+
+  try {
+    const response = (await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        invoice: order.orderNumber,
+        recipient_name: order.customerName,
+        recipient_phone: order.customerPhone,
+        recipient_address: order.shippingAddress,
+        amount: Number(order.totalAmount),
+        items: order.items,
+      }),
+      signal: controller.signal,
+    })) as unknown as { ok: boolean; status: number; json(): Promise<unknown> };
+
+    if (!response.ok) throw new Error(`${provider} booking failed with ${response.status}`);
+    const data = (await response.json()) as Record<string, unknown>;
+    const nested = (data.data ?? {}) as Record<string, unknown>;
+    const trackingCode = data.trackingCode ?? data.tracking_code ?? data.consignment_id ?? nested.tracking_code;
+    if (!trackingCode) throw new Error(`${provider} returned no tracking code`);
+    return { provider, trackingCode: String(trackingCode), isStub: false };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function bookCourierOrder(order: CourierOrder): Promise<CourierResult> {
