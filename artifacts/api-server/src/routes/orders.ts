@@ -9,10 +9,10 @@ import {
   UpdateOrderStatusBody,
   TrackOrderParams,
 } from "@workspace/api-zod";
-import { bookCourierOrder } from "../utils/courier";
-import { sendOrderSms } from "../utils/sms";
-import { requireAdmin, requireAuth } from "../middleware/auth";
-import { logger } from "../lib/logger";
+import { bookCourierOrder } from "../utils/courier.js";
+import { sendOrderSms } from "../utils/sms.js";
+import { requireAdmin, requireAuth } from "../middleware/auth.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 

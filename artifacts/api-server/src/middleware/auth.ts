@@ -1,5 +1,5 @@
 import { type RequestHandler } from "express";
-import { logger } from "../lib/logger";
+import { logger } from "../lib/logger.js";
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, bannersTable } from "@workspace/db";
 import { CreateBannerBody, DeleteBannerParams } from "@workspace/api-zod";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 

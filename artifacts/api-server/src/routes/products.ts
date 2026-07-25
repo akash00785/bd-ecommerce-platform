@@ -11,7 +11,7 @@ import {
   GetRelatedProductsParams,
   ListFeaturedProductsQueryParams,
 } from "@workspace/api-zod";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 

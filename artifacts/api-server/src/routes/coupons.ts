@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, couponsTable } from "@workspace/db";
 import { CreateCouponBody, ValidateCouponBody } from "@workspace/api-zod";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
