@@ -13,7 +13,7 @@ import { db, productsTable, categoriesTable, brandsTable, bannersTable, couponsT
 
 const router = Router();
 
-router.post("/seed", async (req, res): Promise<void> => {
+router.get("/seed", async (req, res): Promise<void> => {
   // ── Auth: simple secret key ──────────────────────────────────────────────
   const secret = process.env.SEED_KEY;
   const provided = (req.query.key ?? req.headers["x-seed-key"] ?? "") as string;
