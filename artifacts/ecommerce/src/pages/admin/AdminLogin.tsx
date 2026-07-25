@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/firebase';
+import { getApiBase } from '@/lib/api';
 
 // Admin emails are controlled via VITE_ADMIN_EMAILS env var (comma-separated).
 // e.g. VITE_ADMIN_EMAILS=admin@example.com,owner@example.com
@@ -30,7 +31,7 @@ export default function AdminLogin() {
       const adminEmails = getAdminEmails();
 
       if (adminEmails.length > 0) {
-        // ✅ Frontend-only check: is this email in the allowed admin list?
+        // Frontend check: is this email in the VITE_ADMIN_EMAILS allowlist?
         const userEmail = result.user.email?.toLowerCase() ?? '';
         if (!adminEmails.includes(userEmail)) {
           await auth!.signOut();
@@ -43,13 +44,10 @@ export default function AdminLogin() {
         return;
       }
 
-      // Fallback: verify via backend API (when VITE_ADMIN_EMAILS is not set
-      // and a backend is deployed).
+      // Fallback: verify admin role via backend API when VITE_ADMIN_EMAILS is
+      // not set (e.g. using Firebase custom claims + ADMIN_UIDS on the server).
       const token = await result.user.getIdToken();
-      const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
-      const checkUrl = apiBase
-        ? `${apiBase}/api/dashboard/stats`
-        : `${import.meta.env.BASE_URL}api/dashboard/stats`;
+      const checkUrl = `${getApiBase()}/api/dashboard/stats`;
 
       try {
         const check = await fetch(checkUrl, {
