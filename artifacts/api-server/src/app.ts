@@ -64,6 +64,9 @@ const corsOptions: cors.CorsOptions = {
 
     if (
       allowedOrigins.includes(requestOrigin) ||
+      // Allow any Vercel deployment URL (preview + production) — both in dev and prod.
+      // Security is enforced via Firebase JWT tokens, not CORS.
+      /^https:\/\/[a-z0-9-]+(\.vercel\.app)$/.test(requestOrigin) ||
       // Allow *.replit.dev for dev convenience (only when in development)
       (process.env.NODE_ENV !== "production" && /^https:\/\/[a-z0-9-]+\.replit\.dev$/.test(requestOrigin)) ||
       (process.env.NODE_ENV !== "production" && /^https:\/\/[a-z0-9-]+\.repl\.co$/.test(requestOrigin))
