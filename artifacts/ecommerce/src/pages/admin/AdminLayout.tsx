@@ -28,7 +28,7 @@ const navItems = [
  * without requiring a full logout/login cycle.
  */
 async function checkIsAdmin(): Promise<boolean> {
-  const user = auth.currentUser;
+  const user = auth?.currentUser;
   if (!user) return false;
 
   try {
@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, loading, setLocation]);
 
   const handleLogout = async () => {
-    await auth.signOut();
+    await auth?.signOut();
     setLocation('/admin/login');
   };
 

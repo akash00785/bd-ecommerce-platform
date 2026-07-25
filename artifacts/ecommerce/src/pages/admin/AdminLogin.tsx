@@ -26,7 +26,12 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const result = await signInWithEmailAndPassword(auth!, email, password);
+      if (!auth) {
+        setError('Firebase configure করা হয়নি।');
+        setLoading(false);
+        return;
+      }
+      const result = await signInWithEmailAndPassword(auth, email, password);
 
       const adminEmails = getAdminEmails();
 
@@ -34,7 +39,7 @@ export default function AdminLogin() {
         // Frontend check: is this email in the VITE_ADMIN_EMAILS allowlist?
         const userEmail = result.user.email?.toLowerCase() ?? '';
         if (!adminEmails.includes(userEmail)) {
-          await auth!.signOut();
+          await auth?.signOut();
           setError('এই অ্যাকাউন্টে অ্যাডমিন অ্যাক্সেস নেই।');
           setLoading(false);
           return;
@@ -59,7 +64,7 @@ export default function AdminLogin() {
         const isHtml = contentType.includes('text/html');
 
         if (!check.ok || isHtml) {
-          await auth!.signOut();
+          await auth?.signOut();
           setError(
             isHtml
               ? 'Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন অথবা Backend deploy করুন।'
@@ -69,7 +74,7 @@ export default function AdminLogin() {
           return;
         }
       } catch {
-        await auth!.signOut();
+        await auth?.signOut();
         setError('Backend API পাওয়া যাচ্ছে না। VITE_ADMIN_EMAILS সেট করুন।');
         setLoading(false);
         return;

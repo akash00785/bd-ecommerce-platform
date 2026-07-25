@@ -32,7 +32,7 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<OrderInputPaymentMethod>("cod");
   
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shippingFee = formData.division === "Dhaka" ? 60 : 130;
+  const shippingFee = 60; // Server charges flat ৳60 via SHIPPING_FEE env var
   const totalAmount = subtotal - discountAmount + shippingFee;
 
   // Redirect if cart is empty
@@ -56,6 +56,10 @@ export default function Checkout() {
     // Basic validation
     if (!formData.name || !formData.phone || !formData.address || !formData.district) {
       toast.error("Please fill in all required address fields");
+      return;
+    }
+    if (!/^01[3-9]\d{8}$/.test(formData.phone)) {
+      toast.error("সঠিক বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 01712345678)");
       return;
     }
 

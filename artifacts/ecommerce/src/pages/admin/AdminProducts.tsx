@@ -10,8 +10,8 @@ function ProductForm({ initial, onSave, onCancel, categories, brands }: any) {
   const [form, setForm] = useState(initial || {
     title: '', price: '', discountPrice: '', stock: '', images: '',
     categoryId: '', brandId: '', description: '', sizes: '', colors: '',
-    warrantyInfo: '', deliveryInfo: '', returnPolicy: '',
-    isFeatured: false, isFlashSale: false, flashSalePrice: '', isSoldOut: false,
+    warranty: '', deliveryTime: '', returnPolicy: '',
+    featured: false, flashSale: false, flashSalePrice: '', soldOut: false,
     type: 'featured',
   });
 
@@ -112,11 +112,11 @@ function ProductForm({ initial, onSave, onCancel, categories, brands }: any) {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">ওয়ারেন্টি</label>
-          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.warrantyInfo} onChange={e => set('warrantyInfo', e.target.value)} />
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.warranty} onChange={e => set('warranty', e.target.value)} />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">ডেলিভারি তথ্য</label>
-          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.deliveryInfo} onChange={e => set('deliveryInfo', e.target.value)} />
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.deliveryTime} onChange={e => set('deliveryTime', e.target.value)} />
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium mb-1">রিটার্ন পলিসি</label>
@@ -124,19 +124,19 @@ function ProductForm({ initial, onSave, onCancel, categories, brands }: any) {
         </div>
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={form.isFeatured} onChange={e => set('isFeatured', e.target.checked)} />
+            <input type="checkbox" checked={form.featured} onChange={e => set('featured', e.target.checked)} />
             Featured
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={form.isFlashSale} onChange={e => set('isFlashSale', e.target.checked)} />
+            <input type="checkbox" checked={form.flashSale} onChange={e => set('flashSale', e.target.checked)} />
             Flash Sale
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={form.isSoldOut} onChange={e => set('isSoldOut', e.target.checked)} />
+            <input type="checkbox" checked={form.soldOut} onChange={e => set('soldOut', e.target.checked)} />
             Sold Out
           </label>
         </div>
-        {form.isFlashSale && (
+        {form.flashSale && (
           <div>
             <label className="block text-sm font-medium mb-1">Flash Sale মূল্য</label>
             <input type="number" className="w-full border rounded-lg px-3 py-2 text-sm" value={form.flashSalePrice} onChange={e => set('flashSalePrice', e.target.value)} />
@@ -184,7 +184,7 @@ export default function AdminProducts() {
   };
 
   const handleToggle = (product: any, field: string) => {
-    updateProduct({ id: product.id, data: { ...product, [field]: !product[field] } }, {
+    updateProduct({ id: product.id, data: { [field]: !product[field] } }, {
       onSuccess: () => refetch()
     });
   };
@@ -232,17 +232,17 @@ export default function AdminProducts() {
                     <td className="px-4 py-3">{p.stock}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {p.isFeatured && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Featured</span>}
-                        {p.isFlashSale && <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Flash</span>}
-                        {p.isSoldOut && <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Sold Out</span>}
+                        {p.featured && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Featured</span>}
+                        {p.flashSale && <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Flash</span>}
+                        {p.soldOut && <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Sold Out</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button onClick={() => setEditProduct(p)} className="text-blue-600 hover:underline text-xs">এডিট</button>
-                        <button onClick={() => handleToggle(p, 'isFeatured')} className="text-purple-600 hover:underline text-xs">Featured</button>
-                        <button onClick={() => handleToggle(p, 'isFlashSale')} className="text-orange-600 hover:underline text-xs">Flash</button>
-                        <button onClick={() => handleToggle(p, 'isSoldOut')} className="text-gray-600 hover:underline text-xs">Sold Out</button>
+                        <button onClick={() => handleToggle(p, 'featured')} className="text-purple-600 hover:underline text-xs">Featured</button>
+                        <button onClick={() => handleToggle(p, 'flashSale')} className="text-orange-600 hover:underline text-xs">Flash</button>
+                        <button onClick={() => handleToggle(p, 'soldOut')} className="text-gray-600 hover:underline text-xs">Sold Out</button>
                         <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:underline text-xs">মুছুন</button>
                       </div>
                     </td>

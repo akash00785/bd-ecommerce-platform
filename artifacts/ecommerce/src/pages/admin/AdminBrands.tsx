@@ -2,9 +2,19 @@ import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import { useListBrands, useCreateBrand } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { auth } from '@/firebase';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
-const apiFetch = (path: string, opts?: RequestInit) => fetch(`${BASE}/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...opts });
+const apiFetch = async (path: string, opts?: RequestInit) => {
+  const token = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+  return fetch(`${BASE}/api${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...opts,
+  });
+};
 
 export default function AdminBrands() {
   const { data: brands, refetch } = useListBrands();
@@ -22,7 +32,8 @@ export default function AdminBrands() {
   };
 
   const handleUpdate = async (id: number) => {
-    await apiFetch(`/brands/${id}`, { method: 'PATCH', body: JSON.stringify(editForm) });
+    const res = await apiFetch(`/brands/${id}`, { method: 'PATCH', body: JSON.stringify(editForm) });
+    if (!res.ok) { alert('ব্র্যান্ড আপডেট ব্যর্থ হয়েছে'); return; }
     setEditId(null);
     refetch();
     qc.invalidateQueries();
@@ -30,7 +41,8 @@ export default function AdminBrands() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('এই ব্র্যান্ড মুছতে চান?')) return;
-    await apiFetch(`/brands/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/brands/${id}`, { method: 'DELETE' });
+    if (!res.ok) { alert('ব্র্যান্ড মুছতে ব্যর্থ হয়েছে'); return; }
     refetch();
     qc.invalidateQueries();
   };
