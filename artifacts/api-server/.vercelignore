@@ -1,5 +1,0 @@
-src/
-tsconfig.src.json
-tsconfig.esbuild.json
-.tsbuildinfo
-build.mjs
