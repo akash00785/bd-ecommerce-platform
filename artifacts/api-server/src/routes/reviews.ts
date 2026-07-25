@@ -92,9 +92,16 @@ router.post("/products/:id/reviews", async (req, res): Promise<void> => {
     return;
   }
 
-  const [review] = await db
-    .insert(reviewsTable)
-    .values({
+  // Product existence check
+  const productCheck = await db.select({ id: productsTable.id }).from(productsTable)
+    .where(eq(productsTable.id, productId)).limit(1);
+  if (!productCheck[0]) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+
+  const review = await db.transaction(async (tx) => {
+    const [r] = await tx.insert(reviewsTable).values({
       productId,
       customerName,
       customerPhone,
@@ -102,22 +109,17 @@ router.post("/products/:id/reviews", async (req, res): Promise<void> => {
       comment: comment || null,
       isVerified: false,
       isApproved: false,
-    })
-    .returning();
-
-  // Recalculate product rating from approved reviews only
-  const [stats] = await db
-    .select({ avgRating: avg(reviewsTable.rating), total: count() })
-    .from(reviewsTable)
-    .where(sql`${reviewsTable.productId} = ${productId} AND ${reviewsTable.isApproved} = true`);
-
-  await db
-    .update(productsTable)
-    .set({
+    }).returning();
+    const [stats] = await tx
+      .select({ avgRating: avg(reviewsTable.rating), total: count() })
+      .from(reviewsTable)
+      .where(sql`${reviewsTable.productId} = ${productId} AND ${reviewsTable.isApproved} = true`);
+    await tx.update(productsTable).set({
       rating: String(Number(Number(stats.avgRating ?? 0).toFixed(2))),
       reviewCount: Number(stats.total),
-    })
-    .where(eq(productsTable.id, productId));
+    }).where(eq(productsTable.id, productId));
+    return r;
+  });
 
   res.status(201).json({
     id: review.id,
