@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import { useGetDashboardStats, useGetRecentOrders, useGetLowStockProducts } from '@workspace/api-client-react';
+import { getApiBase } from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 function StatCard({ label, value, icon, color, sub }: { label: string; value: string | number; icon: string; color: string; sub?: string }) {
   return (
@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const [revenueData, setRevenueData] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${BASE}/api/dashboard/revenue`)
+    fetch(`${getApiBase()}/api/dashboard/revenue`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) setRevenueData(data);

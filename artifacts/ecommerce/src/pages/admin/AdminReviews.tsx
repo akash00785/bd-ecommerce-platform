@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from './AdminLayout';
 import { auth } from '@/firebase';
+import { getApiBase } from '@/lib/api';
 
 type Review = {
   id: number;
@@ -12,11 +13,9 @@ type Review = {
   createdAt: string;
 };
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
-
 /** Returns the current Firebase ID token, or null when not signed in. */
 async function getAuthHeader(): Promise<Record<string, string>> {
-  const token = await auth.currentUser?.getIdToken();
+  const token = await auth?.currentUser?.getIdToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -31,10 +30,14 @@ export default function AdminReviews() {
     setError('');
     try {
       const authHeaders = await getAuthHeader();
-      const response = await fetch(`${BASE}/api/reviews/admin`, { headers: authHeaders });
+      const response = await fetch(`${getApiBase()}/api/reviews/admin`, { headers: authHeaders });
       if (response.status === 401) throw new Error('অনুমতি নেই — অনুগ্রহ করে পুনরায় লগইন করুন।');
       if (response.status === 403) throw new Error('এই পেজটি শুধুমাত্র অ্যাডমিনদের জন্য।');
       if (!response.ok) throw new Error('রিভিউ লোড করা যায়নি');
+      const contentType = response.headers.get('content-type') ?? '';
+      if (contentType.includes('text/html')) {
+        throw new Error('API সংযোগ পাওয়া যাচ্ছে না। VITE_API_URL সঠিকভাবে সেট করুন।');
+      }
       setReviews((await response.json()).reviews ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'রিভিউ লোড করা যায়নি');
@@ -50,7 +53,7 @@ export default function AdminReviews() {
     setError('');
     try {
       const authHeaders = await getAuthHeader();
-      const response = await fetch(`${BASE}/api/reviews/${id}/moderation`, {
+      const response = await fetch(`${getApiBase()}/api/reviews/${id}/moderation`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ approved }),

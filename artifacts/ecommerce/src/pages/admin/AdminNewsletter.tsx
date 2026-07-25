@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from './AdminLayout';
 import { auth } from '@/firebase';
+import { getApiBase } from '@/lib/api';
 
 type Subscriber = { id: number; email: string; subscribedAt: string };
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
-
 /** Returns the current Firebase ID token header, or empty when not signed in. */
 async function getAuthHeader(): Promise<Record<string, string>> {
-  const token = await auth.currentUser?.getIdToken();
+  const token = await auth?.currentUser?.getIdToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -22,10 +21,14 @@ export default function AdminNewsletter() {
     setError('');
     try {
       const authHeaders = await getAuthHeader();
-      const response = await fetch(`${BASE}/api/newsletter/subscribers`, { headers: authHeaders });
+      const response = await fetch(`${getApiBase()}/api/newsletter/subscribers`, { headers: authHeaders });
       if (response.status === 401) throw new Error('অনুমতি নেই — অনুগ্রহ করে পুনরায় লগইন করুন।');
       if (response.status === 403) throw new Error('এই পেজটি শুধুমাত্র অ্যাডমিনদের জন্য।');
       if (!response.ok) throw new Error('সাবস্ক্রাইবার লোড করা যায়নি');
+      const contentType = response.headers.get('content-type') ?? '';
+      if (contentType.includes('text/html')) {
+        throw new Error('API সংযোগ পাওয়া যাচ্ছে না। VITE_API_URL সঠিকভাবে সেট করুন।');
+      }
       const data = await response.json();
       setSubscribers(data.subscribers ?? []);
     } catch (err) {
