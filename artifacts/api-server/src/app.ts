@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -56,17 +55,15 @@ const corsOptions: cors.CorsOptions = {
     // Allow same-origin / server-to-server (no Origin header)
     if (!requestOrigin) return callback(null, true);
 
-    // When ALLOWED_ORIGINS is not configured, allow all origins.
-    // Security is enforced per-request via Firebase JWT tokens (requireAdmin /
-    // requireAuth middleware), so CORS is not the primary security boundary.
-    // This removes the need to set ALLOWED_ORIGINS in Vercel environment vars.
-    if (allowedOrigins.length === 0) return callback(null, true);
+    if (allowedOrigins.length === 0) {
+      return callback(new Error("CORS: ALLOWED_ORIGINS not configured. Set this env var."));
+    }
 
     if (
       allowedOrigins.includes(requestOrigin) ||
       // Allow any Vercel deployment URL (preview + production) — both in dev and prod.
       // Security is enforced via Firebase JWT tokens, not CORS.
-      /^https:\/\/[a-z0-9-]+(\.vercel\.app)$/.test(requestOrigin) ||
+      // /^https:\/\/[a-z0-9-]+(\.vercel\.app)$/.test(requestOrigin) ||
       // Allow *.replit.dev for dev convenience (only when in development)
       (process.env.NODE_ENV !== "production" && /^https:\/\/[a-z0-9-]+\.replit\.dev$/.test(requestOrigin)) ||
       (process.env.NODE_ENV !== "production" && /^https:\/\/[a-z0-9-]+\.repl\.co$/.test(requestOrigin))

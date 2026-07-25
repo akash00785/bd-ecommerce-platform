@@ -20,6 +20,10 @@ router.get("/coupons", requireAdmin, async (_req, res): Promise<void> => {
 router.post("/coupons/validate", async (req, res): Promise<void> => {
   const parsed = ValidateCouponBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (parsed.data.orderAmount == null) {
+    res.status(400).json({ error: "orderAmount is required for validation" });
+    return;
+  }
 
   const coupon = await db.select().from(couponsTable).where(eq(couponsTable.code, parsed.data.code)).limit(1);
   if (!coupon[0] || !coupon[0].active) { res.status(400).json({ error: "Invalid or expired coupon" }); return; }

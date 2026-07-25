@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ONE-TIME DEMO DATA SEEDER
  * ─────────────────────────
@@ -13,10 +12,10 @@ import { db, productsTable, categoriesTable, brandsTable, bannersTable, couponsT
 
 const router = Router();
 
-router.get("/seed", async (req, res): Promise<void> => {
+router.post("/seed", async (req, res): Promise<void> => {
   // ── Auth: simple secret key ──────────────────────────────────────────────
   const secret = process.env.SEED_KEY;
-  const provided = (req.query.key ?? req.headers["x-seed-key"] ?? "") as string;
+  const provided = (req.body?.key ?? req.headers["x-seed-key"] ?? "") as string;
 
   if (!secret) {
     res.status(403).json({ error: "SEED_KEY env var is not set on the server." });
