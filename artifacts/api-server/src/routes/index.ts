@@ -10,6 +10,7 @@ import couponsRouter from "./coupons.js";
 import dashboardRouter from "./dashboard.js";
 import reviewsRouter from "./reviews.js";
 import newsletterRouter from "./newsletter.js";
+import seedRouter from "./seed.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(couponsRouter);
 router.use(dashboardRouter);
 router.use(reviewsRouter);
 router.use(newsletterRouter);
+router.use(seedRouter);
 
 export default router;
