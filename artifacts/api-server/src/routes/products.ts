@@ -161,16 +161,37 @@ router.get("/products/:id/related", async (req, res): Promise<void> => {
 });
 
 // Admin: create product
+// Fix #5: Slug collision — append -2, -3 suffix until unique
+// Fix #10: Reject discountPrice >= price
 router.post("/products", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { slug, price, discountPrice, ...rest } = parsed.data;
-  const generatedSlug = slug ?? parsed.data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+  // discountPrice must be strictly less than price
+  if (discountPrice != null && discountPrice >= price) {
+    res.status(400).json({ error: "ছাড়ের মূল্য নিয়মিত মূল্যের চেয়ে কম হতে হবে।" }); return;
+  }
+
+  const baseSlug = slug ?? parsed.data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+  // Slug uniqueness — append -2, -3, … on collision
+  let finalSlug = baseSlug;
+  let suffix = 2;
+  while (true) {
+    const existing = await db
+      .select({ id: productsTable.id })
+      .from(productsTable)
+      .where(eq(productsTable.slug, finalSlug))
+      .limit(1);
+    if (existing.length === 0) break;
+    finalSlug = `${baseSlug}-${suffix++}`;
+  }
 
   const [created] = await db.insert(productsTable).values({
     ...rest,
-    slug: generatedSlug,
+    slug: finalSlug,
     price: String(price),
     discountPrice: discountPrice != null ? String(discountPrice) : null,
     flashSaleEndsAt: parsed.data.flashSaleEndsAt ? new Date(parsed.data.flashSaleEndsAt) : null,
@@ -180,6 +201,7 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
 });
 
 // Admin: update product
+// Fix #10: Reject discountPrice >= price on update too
 router.patch("/products/:id", requireAdmin, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const paramParsed = UpdateProductParams.safeParse({ id: parseInt(rawId, 10) });
@@ -189,6 +211,12 @@ router.patch("/products/:id", requireAdmin, async (req, res): Promise<void> => {
   if (!bodyParsed.success) { res.status(400).json({ error: bodyParsed.error.message }); return; }
 
   const { price, discountPrice, flashSaleEndsAt, ...rest } = bodyParsed.data;
+
+  // discountPrice must be strictly less than price (if both are provided in this request)
+  if (price != null && discountPrice != null && discountPrice >= price) {
+    res.status(400).json({ error: "ছাড়ের মূল্য নিয়মিত মূল্যের চেয়ে কম হতে হবে।" }); return;
+  }
+
   const updateData: any = { ...rest };
   if (price != null) updateData.price = String(price);
   if (discountPrice !== undefined) updateData.discountPrice = discountPrice != null ? String(discountPrice) : null;

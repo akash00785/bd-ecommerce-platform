@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { Router } from "express";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import { db, ordersTable, productsTable, couponsTable } from "@workspace/db";
@@ -16,9 +17,10 @@ import { logger } from "../lib/logger.js";
 
 const router = Router();
 
+// Fix #2: Use crypto.randomBytes() instead of Math.random() — cryptographically secure
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const rand = randomBytes(3).toString("hex").toUpperCase(); // 6 hex chars
   return `BD-${ts}-${rand}`;
 }
 
@@ -98,6 +100,22 @@ router.post("/orders", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { items, couponCode, shippingFee: _clientShipping, totalAmount: _clientTotal, discountAmount: _clientDiscount, ...rest } = parsed.data;
+
+  // Fix #7: Validate items array before processing
+  if (!items || items.length === 0) {
+    res.status(400).json({ error: "অর্ডারে কমপক্ষে একটি পণ্য থাকতে হবে।" });
+    return;
+  }
+  if (items.length > 50) {
+    res.status(400).json({ error: "একটি অর্ডারে সর্বোচ্চ ৫০টি পণ্য থাকতে পারে।" });
+    return;
+  }
+  for (const item of items as any[]) {
+    if (item.quantity > 100) {
+      res.status(400).json({ error: "একটি পণ্যের সর্বোচ্চ পরিমাণ ১০০।" });
+      return;
+    }
+  }
 
   // 1. Fetch real product prices from DB
   const productIds = items.map((i: any) => i.productId as number);
@@ -222,6 +240,7 @@ router.get("/orders/track/:orderNumber", async (req, res): Promise<void> => {
 
 // ---------------------------------------------------------------------------
 // GET /orders/:id  — IDOR fix: only admin or order owner (matched by email)
+// Fix #8: Use middleware-provided decoded token only (no duplicated ADMIN_UIDS logic)
 // ---------------------------------------------------------------------------
 router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -231,14 +250,14 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
   const order = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id)).limit(1);
   if (!order[0]) { res.status(404).json({ error: "Not found" }); return; }
 
-  const user = (req as any).user;
-  const adminUids: string[] = (process.env.ADMIN_UIDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
-  const isAdmin = user?.admin === true || adminUids.includes(user?.uid);
+  const decoded = (req as any).user;
+  // Trust the middleware-verified token's admin claim only — no raw ADMIN_UIDS duplication
+  const isAdminUser = decoded?.admin === true;
 
   // If not admin, verify ownership via email
-  if (!isAdmin) {
+  if (!isAdminUser) {
     const orderEmail = order[0].customerEmail;
-    if (!orderEmail || orderEmail !== user.email) {
+    if (!orderEmail || orderEmail !== decoded.email) {
       res.status(403).json({ error: "Access denied" });
       return;
     }
@@ -249,7 +268,17 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
 
 // ---------------------------------------------------------------------------
 // PATCH /orders/:id/status  — admin only
+// Fix #13: State machine — prevent invalid/reverse status transitions
 // ---------------------------------------------------------------------------
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending:   ["confirmed", "cancelled"],
+  confirmed: ["shipped",   "cancelled"],
+  shipped:   ["delivered", "cancelled"],
+  delivered: [],   // final state — no further changes
+  cancelled: [],   // final state — no further changes
+};
+
 router.patch("/orders/:id/status", requireAdmin, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const paramParsed = UpdateOrderStatusParams.safeParse({ id: parseInt(rawId, 10) });
@@ -257,6 +286,22 @@ router.patch("/orders/:id/status", requireAdmin, async (req, res): Promise<void>
 
   const bodyParsed = UpdateOrderStatusBody.safeParse(req.body);
   if (!bodyParsed.success) { res.status(400).json({ error: bodyParsed.error.message }); return; }
+
+  // Fetch current order first to validate state transition
+  const currentOrder = await db.select({ id: ordersTable.id, orderStatus: ordersTable.orderStatus })
+    .from(ordersTable)
+    .where(eq(ordersTable.id, paramParsed.data.id))
+    .limit(1);
+
+  if (!currentOrder[0]) { res.status(404).json({ error: "Not found" }); return; }
+
+  const allowed = VALID_TRANSITIONS[currentOrder[0].orderStatus] ?? [];
+  if (!allowed.includes(bodyParsed.data.orderStatus)) {
+    res.status(400).json({
+      error: `"${currentOrder[0].orderStatus}" থেকে "${bodyParsed.data.orderStatus}" এ পরিবর্তন করা যাবে না।`,
+    });
+    return;
+  }
 
   let [updated] = await db.update(ordersTable)
     .set({ orderStatus: bodyParsed.data.orderStatus, trackingId: bodyParsed.data.trackingId ?? null })

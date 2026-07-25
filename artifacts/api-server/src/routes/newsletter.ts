@@ -28,6 +28,16 @@ router.post("/newsletter/subscribe", async (req, res): Promise<void> => {
   res.status(201).json({ message: "সফলভাবে সাবস্ক্রাইব করা হয়েছে!" });
 });
 
+// Public: unsubscribe — Fix #9: GDPR-friendly unsubscribe endpoint
+router.post("/newsletter/unsubscribe", async (req, res): Promise<void> => {
+  const emailStr = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+  if (!emailStr) { res.status(400).json({ error: "ইমেইল দিন" }); return; }
+  await db.update(newsletterTable)
+    .set({ isActive: false })
+    .where(eq(newsletterTable.email, emailStr));
+  res.json({ message: "আনসাবস্ক্রাইব সফল হয়েছে।" });
+});
+
 // Admin: list subscribers
 router.get("/newsletter/subscribers", requireAdmin, async (_req, res): Promise<void> => {
   const subscribers = await db
