@@ -18,6 +18,7 @@ async function buildAll() {
   // api/index.js imports this so Vercel never needs to TypeScript-compile our source.
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/app.ts")],
+    tsconfig: path.resolve(artifactDir, "tsconfig.esbuild.json"),
     platform: "node",
     bundle: true,
     format: "esm",
@@ -55,6 +56,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    tsconfig: path.resolve(artifactDir, "tsconfig.esbuild.json"),
     platform: "node",
     bundle: true,
     format: "esm",
