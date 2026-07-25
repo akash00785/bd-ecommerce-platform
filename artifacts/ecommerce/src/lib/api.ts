@@ -1,20 +1,29 @@
+import { getBaseUrl } from '@workspace/api-client-react';
+
 /**
- * Returns the API base URL (without trailing slash).
+ * Returns the API base URL (without trailing slash) for raw fetch() calls.
  *
- * Priority:
- *   1. VITE_API_URL env var — set this in production when the API server is
- *      deployed separately (e.g. VITE_API_URL=https://api.myshop.vercel.app).
- *   2. Empty string — fetch calls become relative URLs (/api/...) which hit
- *      the same origin. Works in development via Vite proxy and in any
- *      deployment where the frontend and API share the same domain.
+ * Single source of truth — reads from the same place as the generated API
+ * client (setBaseUrl / getBaseUrl), so both systems always agree on the URL.
  *
- * NOTE: BASE_URL is intentionally NOT used as a fallback here because it
- * represents the Vite frontend base path (e.g. /ecommerce/), not the API
- * server address. Using it would produce broken URLs like /ecommerce/api/...
- * which the SPA catch-all rewrites to index.html (HTML, not JSON).
+ * Resolution order:
+ *   1. VITE_API_URL build-time env var (set this in Vercel when the API is
+ *      deployed on a separate domain, e.g. VITE_API_URL=https://api.myshop.vercel.app)
+ *   2. Runtime base URL set via setBaseUrl() (same value as above, applied to
+ *      the generated client in main.tsx — kept in sync automatically)
+ *   3. '' (empty string) — fetch calls become relative /api/... paths that hit
+ *      the same origin.  Works in local dev via Vite proxy.
  */
 export function getApiBase(): string {
-  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
-  if (apiUrl) return apiUrl.replace(/\/+$/, '');
+  // Build-time env var — available at compile time and always reliable.
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
+
+  // Runtime value — set by setBaseUrl() in main.tsx from the same env var.
+  // Exists as a safety net; in practice both resolve to the same string.
+  const runtimeUrl = getBaseUrl();
+  if (runtimeUrl) return runtimeUrl;
+
+  // No API URL configured — use same-origin relative paths (local dev / monorepo deploy).
   return '';
 }

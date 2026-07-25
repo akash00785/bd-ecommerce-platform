@@ -30,6 +30,15 @@ export function setBaseUrl(url: string | null): void {
 }
 
 /**
+ * Returns the currently configured base URL (set via setBaseUrl), or null
+ * when none has been configured.  Use this to keep raw fetch() calls in sync
+ * with the generated API client without duplicating the VITE_API_URL read.
+ */
+export function getBaseUrl(): string | null {
+  return _baseUrl;
+}
+
+/**
  * Register a getter that supplies a bearer auth token.  Before every fetch
  * the getter is invoked; when it returns a non-null string, an
  * `Authorization: Bearer <token>` header is attached to the request.

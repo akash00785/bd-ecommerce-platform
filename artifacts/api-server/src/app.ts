@@ -56,6 +56,12 @@ const corsOptions: cors.CorsOptions = {
     // Allow same-origin / server-to-server (no Origin header)
     if (!requestOrigin) return callback(null, true);
 
+    // When ALLOWED_ORIGINS is not configured, allow all origins.
+    // Security is enforced per-request via Firebase JWT tokens (requireAdmin /
+    // requireAuth middleware), so CORS is not the primary security boundary.
+    // This removes the need to set ALLOWED_ORIGINS in Vercel environment vars.
+    if (allowedOrigins.length === 0) return callback(null, true);
+
     if (
       allowedOrigins.includes(requestOrigin) ||
       // Allow *.replit.dev for dev convenience (only when in development)
