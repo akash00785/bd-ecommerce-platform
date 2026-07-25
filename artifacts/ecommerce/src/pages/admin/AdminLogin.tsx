@@ -140,11 +140,6 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-          <p className="text-center text-xs text-gray-500">
-            Vercel-এ <code className="bg-gray-200 px-1 rounded">VITE_ADMIN_EMAILS</code> সেট করুন
-          </p>
-        </div>
       </div>
     </div>
   );
