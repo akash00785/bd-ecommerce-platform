@@ -92,6 +92,22 @@ router.post("/products/:id/reviews", async (req, res): Promise<void> => {
     return;
   }
 
+  // Prevent duplicate reviews: one phone number = one review per product.
+  // This stops rating manipulation via repeated submissions.
+  if (customerPhone) {
+    const duplicate = await db
+      .select({ id: reviewsTable.id })
+      .from(reviewsTable)
+      .where(
+        sql`${reviewsTable.productId} = ${productId} AND ${reviewsTable.customerPhone} = ${customerPhone}`
+      )
+      .limit(1);
+    if (duplicate.length > 0) {
+      res.status(409).json({ error: "আপনি এই পণ্যে আগেই রিভিউ দিয়েছেন" });
+      return;
+    }
+  }
+
   const [review] = await db
     .insert(reviewsTable)
     .values({

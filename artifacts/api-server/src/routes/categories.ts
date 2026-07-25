@@ -48,6 +48,18 @@ router.delete("/categories/:id", requireAdmin, async (req, res): Promise<void> =
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const parsed = DeleteCategoryParams.safeParse({ id: parseInt(rawId, 10) });
   if (!parsed.success) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  // Safety check: prevent orphaning products that belong to this category
+  const productCheck = await db
+    .select({ id: productsTable.id })
+    .from(productsTable)
+    .where(eq(productsTable.categoryId, parsed.data.id))
+    .limit(1);
+  if (productCheck.length > 0) {
+    res.status(409).json({ error: "এই ক্যাটাগরিতে প্রোডাক্ট আছে। আগে প্রোডাক্টগুলো সরান বা অন্য ক্যাটাগরিতে নিন।" });
+    return;
+  }
+
   await db.delete(categoriesTable).where(eq(categoriesTable.id, parsed.data.id));
   res.status(204).send();
 });
