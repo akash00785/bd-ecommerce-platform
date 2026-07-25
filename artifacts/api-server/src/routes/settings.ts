@@ -7,8 +7,13 @@ const router = Router();
 
 // Public: read site settings (used by storefront for branding, contact, etc.)
 router.get("/settings", async (_req, res): Promise<void> => {
+  const SENSITIVE_KEYS = ["smtp_password", "api_secret", "webhook_secret", "payment_key"];
   const settings = await db.select().from(siteSettingsTable);
-  res.json(settings.map((s) => ({ key: s.key, value: s.value })));
+  res.json(
+    settings
+      .filter((s) => !SENSITIVE_KEYS.includes(s.key))
+      .map((s) => ({ key: s.key, value: s.value }))
+  );
 });
 
 // Admin: update settings

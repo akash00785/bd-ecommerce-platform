@@ -38,8 +38,11 @@ export const useCartStore = create<CartState>()(
         );
         
         if (existingItemIndex !== -1) {
-          const newItems = [...state.items];
-          newItems[existingItemIndex].quantity += item.quantity;
+          const newItems = state.items.map((i, idx) =>
+            idx === existingItemIndex
+              ? { ...i, quantity: i.quantity + item.quantity }
+              : i
+          );
           return { items: newItems };
         }
         

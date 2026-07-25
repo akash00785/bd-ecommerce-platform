@@ -32,7 +32,12 @@ function ProductReviews({ productId }: { productId: number }) {
       setReviews(data.reviews || []);
       setAvgRating(data.avgRating || 0);
       setTotal(data.total || 0);
-    } catch {}
+    } catch (err) {
+      console.error('Reviews load failed:', err);
+      setReviews([]);
+      setAvgRating(0);
+      setTotal(0);
+    }
     setLoading(false);
   };
 
