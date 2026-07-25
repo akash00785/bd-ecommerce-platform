@@ -1,0 +1,1 @@
+- [GitHub push safety](github-push-safety.md) — fetch the GitHub default branch before pushing when the workspace remote is only a Replit backup
