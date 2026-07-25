@@ -5,8 +5,17 @@ import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
-// Public: read site settings (used by storefront for branding, contact, etc.)
+// Public: read site settings — only keys explicitly marked as public_ are returned
+// Fix #4: Filter to public_ prefix only to prevent leaking sensitive config values
 router.get("/settings", async (_req, res): Promise<void> => {
+  const settings = await db.select().from(siteSettingsTable);
+  // Only expose keys that are explicitly marked as public
+  const publicSettings = settings.filter((s) => s.key.startsWith("public_"));
+  res.json(publicSettings.map((s) => ({ key: s.key, value: s.value })));
+});
+
+// Admin: read all settings (including non-public ones)
+router.get("/settings/all", requireAdmin, async (_req, res): Promise<void> => {
   const settings = await db.select().from(siteSettingsTable);
   res.json(settings.map((s) => ({ key: s.key, value: s.value })));
 });

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -165,4 +164,3 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 export default app;
-

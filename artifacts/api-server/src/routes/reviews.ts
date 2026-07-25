@@ -131,7 +131,20 @@ router.post("/products/:id/reviews", async (req, res): Promise<void> => {
 });
 
 // -----------------------------------------------------------------------
-// Admin: moderation queue (pending reviews)
+// Admin: pending reviews list — Fix #12: New endpoint for moderation queue
+// -----------------------------------------------------------------------
+router.get("/reviews/pending", requireAdmin, async (_req, res): Promise<void> => {
+  const pending = await db
+    .select()
+    .from(reviewsTable)
+    .where(eq(reviewsTable.isApproved, false))
+    .orderBy(desc(reviewsTable.createdAt))
+    .limit(100);
+  res.json(pending.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })));
+});
+
+// -----------------------------------------------------------------------
+// Admin: moderation queue (pending reviews) — legacy endpoint kept for compatibility
 // -----------------------------------------------------------------------
 router.get("/reviews/admin", requireAdmin, async (_req, res): Promise<void> => {
   const reviews = await db
