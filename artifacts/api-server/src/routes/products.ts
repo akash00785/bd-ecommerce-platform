@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, ilike, and, gte, lte, sql, desc, asc } from "drizzle-orm";
+import { eq, ilike, and, gte, lte, sql, desc, asc, inArray } from "drizzle-orm";
 import { db, productsTable, categoriesTable, brandsTable } from "@workspace/db";
 import {
   ListProductsQueryParams,
@@ -83,8 +83,8 @@ router.get("/products", async (req, res): Promise<void> => {
   const catIds = [...new Set(products.map((p) => p.categoryId).filter(Boolean))];
   const brandIds = [...new Set(products.map((p) => p.brandId).filter(Boolean))];
   const [cats, brands] = await Promise.all([
-    catIds.length > 0 ? db.select().from(categoriesTable).where(sql`id = ANY(${catIds}::int[])`) : Promise.resolve([]),
-    brandIds.length > 0 ? db.select().from(brandsTable).where(sql`id = ANY(${brandIds}::int[])`) : Promise.resolve([]),
+    catIds.length > 0 ? db.select().from(categoriesTable).where(inArray(categoriesTable.id, catIds as number[])) : Promise.resolve([]),
+    brandIds.length > 0 ? db.select().from(brandsTable).where(inArray(brandsTable.id, brandIds as number[])) : Promise.resolve([]),
   ]);
   const catMap = Object.fromEntries(cats.map((c) => [c.id, c.name]));
   const brandMap = Object.fromEntries(brands.map((b) => [b.id, b.name]));
